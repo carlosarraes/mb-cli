@@ -45,4 +45,28 @@ pub enum Commands {
         #[arg(long, help = "Output as CSV")]
         csv: bool,
     },
+
+    #[command(about = "Manage AI agent skills")]
+    Skill {
+        #[command(subcommand)]
+        action: SkillAction,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum SkillAction {
+    #[command(about = "Install the mb skill and link to detected AI agents")]
+    Add {
+        #[arg(long, help = "Overwrite existing non-symlink directories")]
+        force: bool,
+    },
+
+    #[command(about = "Update to the latest version")]
+    Update,
+
+    #[command(about = "Remove skill and unlink from all agents")]
+    Remove,
+
+    #[command(about = "Show installation and version info")]
+    Status,
 }

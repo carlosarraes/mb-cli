@@ -8,7 +8,7 @@ mod output;
 use anyhow::Result;
 use clap::Parser;
 
-use cli::{Cli, Commands};
+use cli::{Cli, Commands, SkillAction};
 use client::MetabaseClient;
 
 fn main() -> Result<()> {
@@ -19,15 +19,22 @@ fn main() -> Result<()> {
 
     let cli = Cli::parse();
 
-    if let Commands::Config = &cli.command {
-        return commands::config_cmd::run();
+    match &cli.command {
+        Commands::Config => return commands::config_cmd::run(),
+        Commands::Skill { action } => return match action {
+            SkillAction::Add { force } => commands::skill::add(*force),
+            SkillAction::Update => commands::skill::update(),
+            SkillAction::Remove => commands::skill::remove(),
+            SkillAction::Status => commands::skill::status(),
+        },
+        _ => {}
     }
 
     let cfg = config::load()?;
     let client = MetabaseClient::new(&cfg)?;
 
     match cli.command {
-        Commands::Config => unreachable!(),
+        Commands::Config | Commands::Skill { .. } => unreachable!(),
         Commands::Databases => commands::databases::run(&client),
         Commands::Tables { database } => commands::tables::run(&client, &database),
         Commands::Fields { database, table } => commands::fields::run(&client, &database, &table),
