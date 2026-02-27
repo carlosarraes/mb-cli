@@ -2,6 +2,7 @@ mod cli;
 mod client;
 mod commands;
 mod config;
+mod llm_help;
 mod output;
 
 use anyhow::Result;
@@ -11,6 +12,11 @@ use cli::{Cli, Commands};
 use client::MetabaseClient;
 
 fn main() -> Result<()> {
+    if std::env::args().any(|a| a == "--llm") {
+        llm_help::print_llm_help();
+        return Ok(());
+    }
+
     let cli = Cli::parse();
 
     if let Commands::Config = &cli.command {
