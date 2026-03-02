@@ -34,17 +34,20 @@ fn skill_dir() -> Result<PathBuf> {
     Ok(dir)
 }
 
-fn is_installed() -> bool {
-    skill_dir()
-        .map(|d| d.join(".version").exists())
-        .unwrap_or(false)
+fn http_client() -> Result<Client> {
+    Client::builder()
+        .timeout(Duration::from_secs(10))
+        .build()
+        .context("failed to build HTTP client")
 }
 
-fn installed_version() -> Result<String> {
+fn installed_version() -> Result<Option<String>> {
     let path = skill_dir()?.join(".version");
-    fs::read_to_string(&path)
-        .map(|s| s.trim().to_string())
-        .context("could not read installed version")
+    match fs::read_to_string(&path) {
+        Ok(s) => Ok(Some(s.trim().to_string())),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(anyhow::anyhow!(e).context("could not read installed version")),
+    }
 }
 
 fn fetch_remote_version(client: &Client) -> Result<String> {
@@ -97,16 +100,18 @@ fn create_symlinks(force: bool) -> Result<Vec<&'static str>> {
     for agent in agents {
         let link_path = home.join(agent.dir).join("mb");
 
-        if link_path.exists() || link_path.symlink_metadata().is_ok() {
-            let meta = link_path.symlink_metadata()?;
-            if meta.file_type().is_symlink() {
+        match link_path.symlink_metadata() {
+            Ok(meta) if meta.file_type().is_symlink() => {
                 fs::remove_file(&link_path)?;
-            } else if force {
+            }
+            Ok(_) if force => {
                 fs::remove_dir_all(&link_path)?;
-            } else {
+            }
+            Ok(_) => {
                 eprintln!("Warning: {} exists and is not a symlink (use --force)", link_path.display());
                 continue;
             }
+            Err(_) => {}
         }
 
         unix::fs::symlink(&target, &link_path)
@@ -123,12 +128,11 @@ fn remove_symlinks() -> Result<Vec<&'static str>> {
 
     for agent in AGENTS {
         let link_path = home.join(agent.dir).join("mb");
-        if link_path.symlink_metadata().is_ok() {
-            let meta = link_path.symlink_metadata()?;
-            if meta.file_type().is_symlink() {
-                fs::remove_file(&link_path)?;
-                removed.push(agent.name);
-            }
+        if let Ok(meta) = link_path.symlink_metadata()
+            && meta.file_type().is_symlink()
+        {
+            fs::remove_file(&link_path)?;
+            removed.push(agent.name);
         }
     }
 
@@ -162,12 +166,12 @@ fn symlink_status() -> Result<Vec<(&'static str, &'static str)>> {
 }
 
 pub fn add(force: bool) -> Result<()> {
-    if is_installed() {
+    if installed_version()?.is_some() {
         bail!("skill already installed. Run 'mb skill update' to update or 'mb skill remove' first");
     }
 
     println!("Fetching mb skill from GitHub...");
-    let client = Client::builder().timeout(Duration::from_secs(10)).build()?;
+    let client = http_client()?;
     let version = fetch_and_store(&client)?;
     let linked = create_symlinks(force)?;
 
@@ -181,12 +185,11 @@ pub fn add(force: bool) -> Result<()> {
 }
 
 pub fn update() -> Result<()> {
-    if !is_installed() {
+    let Some(current) = installed_version()? else {
         bail!("skill not installed. Run 'mb skill add' first");
-    }
+    };
 
-    let client = Client::builder().timeout(Duration::from_secs(10)).build()?;
-    let current = installed_version()?;
+    let client = http_client()?;
     let remote = fetch_remote_version(&client)?;
 
     if remote == current {
@@ -206,7 +209,7 @@ pub fn update() -> Result<()> {
 }
 
 pub fn remove() -> Result<()> {
-    if !is_installed() {
+    if installed_version()?.is_none() {
         bail!("skill is not installed");
     }
 
@@ -223,13 +226,12 @@ pub fn remove() -> Result<()> {
 }
 
 pub fn status() -> Result<()> {
-    if !is_installed() {
+    let Some(current) = installed_version()? else {
         println!("mb skill: not installed");
         println!("Run 'mb skill add' to install");
         return Ok(());
-    }
+    };
 
-    let current = installed_version()?;
     println!("mb skill v{current}\n");
 
     println!("Agents:");
@@ -237,7 +239,7 @@ pub fn status() -> Result<()> {
         println!("  {name:<8} {status}");
     }
 
-    let client = Client::builder().timeout(Duration::from_secs(5)).build()?;
+    let client = http_client()?;
     match fetch_remote_version(&client) {
         Ok(remote) if remote != current => {
             println!("\nUpdate available: v{current} -> v{remote}");
