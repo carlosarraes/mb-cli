@@ -19,6 +19,6 @@ pub fn run(client: &MetabaseClient, database: &str, sql: &str, json: bool, csv: 
     }
 
     let result = client.run_query(db_id, sql)?;
-    output::print_query_table(&result);
+    output::print_query_table(result);
     Ok(())
 }

@@ -12,16 +12,16 @@ pub fn print_table<T: Tabled>(items: &[T]) {
     println!("{table}");
 }
 
-pub fn print_query_table(result: &QueryResult) {
+pub fn print_query_table(result: QueryResult) {
     if result.data.rows.is_empty() {
         println!("No results.");
         return;
     }
     let mut builder = Builder::default();
-    builder.push_record(result.data.cols.iter().map(|c| c.name.clone()));
-    for row in &result.data.rows {
-        builder.push_record(row.iter().map(|v| match v {
-            serde_json::Value::String(s) => s.clone(),
+    builder.push_record(result.data.cols.into_iter().map(|c| c.name));
+    for row in result.data.rows {
+        builder.push_record(row.into_iter().map(|v| match v {
+            serde_json::Value::String(s) => s,
             serde_json::Value::Null => "NULL".to_string(),
             other => other.to_string(),
         }));
