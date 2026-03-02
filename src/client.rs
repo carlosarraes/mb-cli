@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use anyhow::{bail, Context, Result};
 use reqwest::blocking::Client;
 use serde::Deserialize;
@@ -25,6 +23,14 @@ pub struct Database {
 }
 
 #[derive(Deserialize)]
+#[serde(untagged)]
+enum DatabaseListResponse {
+    Wrapped { data: Vec<Database> },
+    Bare(Vec<Database>),
+}
+
+#[allow(dead_code)]
+#[derive(Deserialize)]
 pub struct DatabaseMetadata {
     pub id: i64,
     pub name: String,
@@ -38,6 +44,7 @@ pub struct Table {
     pub schema: Option<String>,
 }
 
+#[allow(dead_code)]
 #[derive(Deserialize)]
 pub struct TableMetadata {
     pub id: i64,
@@ -68,6 +75,7 @@ pub struct QueryData {
 #[derive(Deserialize)]
 pub struct QueryCol {
     pub name: String,
+    #[allow(dead_code)]
     pub base_type: String,
 }
 
@@ -93,6 +101,15 @@ impl MetabaseClient {
         }
     }
 
+    fn check_response(resp: reqwest::blocking::Response) -> Result<reqwest::blocking::Response> {
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let body = resp.text().unwrap_or_default();
+            bail!("Metabase API error ({status}): {}", &body[..body.len().min(500)]);
+        }
+        Ok(resp)
+    }
+
     fn get(&self, path: &str) -> Result<reqwest::blocking::Response> {
         let url = format!("{}{}", self.base_url, path);
         let (header, value) = self.auth_header();
@@ -100,12 +117,7 @@ impl MetabaseClient {
             .header(header, value)
             .send()
             .with_context(|| format!("failed to reach Metabase at {url}"))?;
-        if !resp.status().is_success() {
-            let status = resp.status();
-            let body = resp.text().unwrap_or_default();
-            bail!("Metabase API error ({status}): {}", &body[..body.len().min(500)]);
-        }
-        Ok(resp)
+        Self::check_response(resp)
     }
 
     fn post_json(&self, path: &str, body: &serde_json::Value) -> Result<reqwest::blocking::Response> {
@@ -116,25 +128,20 @@ impl MetabaseClient {
             .json(body)
             .send()
             .with_context(|| format!("failed to reach Metabase at {url}"))?;
-        if !resp.status().is_success() {
-            let status = resp.status();
-            let body = resp.text().unwrap_or_default();
-            bail!("Metabase API error ({status}): {}", &body[..body.len().min(500)]);
-        }
-        Ok(resp)
+        Self::check_response(resp)
     }
 
     pub fn list_databases(&self) -> Result<Vec<Database>> {
         let resp = self.get("/api/database")?;
-        let wrapper: serde_json::Value = resp.json().context("failed to parse database list")?;
-        let data = wrapper.get("data").unwrap_or(&wrapper);
-        let databases: Vec<Database> = serde_json::from_value(data.clone())
-            .context("failed to parse database entries")?;
-        Ok(databases)
+        let wrapper: DatabaseListResponse = resp.json().context("failed to parse database list")?;
+        Ok(match wrapper {
+            DatabaseListResponse::Wrapped { data } => data,
+            DatabaseListResponse::Bare(data) => data,
+        })
     }
 
     pub fn database_metadata(&self, id: i64) -> Result<DatabaseMetadata> {
-        let resp = self.get(&format!("/api/database/{id}/metadata?include=tables.fields"))?;
+        let resp = self.get(&format!("/api/database/{id}/metadata"))?;
         resp.json().context("failed to parse database metadata")
     }
 
@@ -143,8 +150,8 @@ impl MetabaseClient {
         resp.json().context("failed to parse table metadata")
     }
 
-    pub fn run_query(&self, db_id: i64, sql: &str) -> Result<QueryResult> {
-        let body = serde_json::json!({
+    fn query_body(db_id: i64, sql: &str) -> serde_json::Value {
+        serde_json::json!({
             "database": db_id,
             "type": "native",
             "native": {
@@ -152,21 +159,17 @@ impl MetabaseClient {
                 "template-tags": {}
             },
             "parameters": []
-        });
+        })
+    }
+
+    pub fn run_query(&self, db_id: i64, sql: &str) -> Result<QueryResult> {
+        let body = Self::query_body(db_id, sql);
         let resp = self.post_json("/api/dataset", &body)?;
         resp.json().context("failed to parse query result")
     }
 
     pub fn export_query(&self, db_id: i64, sql: &str, format: &str) -> Result<String> {
-        let body = serde_json::json!({
-            "database": db_id,
-            "type": "native",
-            "native": {
-                "query": sql,
-                "template-tags": {}
-            },
-            "parameters": []
-        });
+        let body = Self::query_body(db_id, sql);
         let resp = self.post_json(&format!("/api/dataset/{format}"), &body)?;
         resp.text().context("failed to read export response")
     }
@@ -176,17 +179,8 @@ impl MetabaseClient {
             return Ok(id);
         }
         let databases = self.list_databases()?;
-        let matches: Vec<_> = databases.iter()
-            .filter(|db| db.name.eq_ignore_ascii_case(input))
-            .collect();
-        match matches.len() {
-            0 => bail!("no database found matching '{input}'"),
-            1 => Ok(matches[0].id),
-            _ => bail!(
-                "multiple databases match '{input}', use ID instead: {}",
-                matches.iter().map(|db| format!("{} (id: {})", db.name, db.id)).collect::<Vec<_>>().join(", ")
-            ),
-        }
+        let items: Vec<_> = databases.iter().map(|db| (db.id, db.name.as_str())).collect();
+        resolve_by_name(input, &items, "database")
     }
 
     pub fn resolve_table(&self, db_id: i64, input: &str) -> Result<i64> {
@@ -194,16 +188,21 @@ impl MetabaseClient {
             return Ok(id);
         }
         let metadata = self.database_metadata(db_id)?;
-        let matches: Vec<_> = metadata.tables.iter()
-            .filter(|t| t.name.eq_ignore_ascii_case(input))
-            .collect();
-        match matches.len() {
-            0 => bail!("no table found matching '{input}'"),
-            1 => Ok(matches[0].id),
-            _ => bail!(
-                "multiple tables match '{input}', use ID instead: {}",
-                matches.iter().map(|t| format!("{} (id: {})", t.name, t.id)).collect::<Vec<_>>().join(", ")
-            ),
-        }
+        let items: Vec<_> = metadata.tables.iter().map(|t| (t.id, t.name.as_str())).collect();
+        resolve_by_name(input, &items, "table")
+    }
+}
+
+fn resolve_by_name(input: &str, items: &[(i64, &str)], entity: &str) -> Result<i64> {
+    let matches: Vec<_> = items.iter()
+        .filter(|(_, name)| name.eq_ignore_ascii_case(input))
+        .collect();
+    match matches.len() {
+        0 => bail!("no {entity} found matching '{input}'"),
+        1 => Ok(matches[0].0),
+        _ => bail!(
+            "multiple {entity}s match '{input}', use ID instead: {}",
+            matches.iter().map(|(id, name)| format!("{name} (id: {id})")).collect::<Vec<_>>().join(", ")
+        ),
     }
 }
