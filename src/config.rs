@@ -1,6 +1,8 @@
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::fs;
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 
 #[derive(Serialize, Deserialize)]
@@ -37,5 +39,8 @@ pub fn save(config: &Config) -> Result<()> {
     }
     let content = toml::to_string_pretty(config).context("could not serialize config")?;
     fs::write(&path, content).context("could not write config file")?;
+    #[cfg(unix)]
+    fs::set_permissions(&path, fs::Permissions::from_mode(0o600))
+        .context("could not restrict config file permissions")?;
     Ok(())
 }
