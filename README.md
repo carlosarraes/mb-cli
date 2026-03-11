@@ -47,8 +47,14 @@ Prompts for Metabase URL and auth (API key or session token from browser cookie)
 | `mb tables <db>` | List tables in a database |
 | `mb fields <db> <table>` | List fields with types |
 | `mb query <db> "SQL"` | Run a native SQL query |
+| `mb skill add` | Install the AI agent skill and link to detected agents |
+| `mb skill update` | Update skill to the latest version |
+| `mb skill remove` | Remove skill and unlink from all agents |
+| `mb skill status` | Show installation and version info |
 
 Database and table args accept **name or ID**.
+
+The `skill` command manages an AI agent skill that teaches Claude, Cursor, and Codex how to use `mb` effectively. It downloads the skill files and symlinks them into each detected agent's skill directory.
 
 ## Examples
 
