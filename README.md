@@ -4,10 +4,30 @@ A CLI for querying Metabase databases.
 
 ## Install
 
+### Quick install (Linux / macOS)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/carlosarraes/mb-cli/main/install.sh | sh
+```
+
+To install a specific version:
+
+```bash
+MB_VERSION=v0.1.0 curl -fsSL https://raw.githubusercontent.com/carlosarraes/mb-cli/main/install.sh | sh
+```
+
+### Download from GitHub Releases
+
+Pre-built binaries for Linux, macOS, and Windows are available on the
+[Releases page](https://github.com/carlosarraes/mb-cli/releases).
+
+### Build from source
+
 ```bash
 just build
 ```
 
+Requires [Rust](https://rustup.rs/) and [just](https://github.com/casey/just).
 Builds and copies `mb` to `~/.local/bin/`.
 
 ## Setup
