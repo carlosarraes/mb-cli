@@ -8,7 +8,9 @@ mod output;
 use anyhow::Result;
 use clap::Parser;
 
-use cli::{Cli, Commands, SkillAction};
+use cli::{Cli, Commands};
+#[cfg(unix)]
+use cli::SkillAction;
 use client::MetabaseClient;
 
 fn main() -> Result<()> {
@@ -21,6 +23,7 @@ fn main() -> Result<()> {
 
     match cli.command {
         Commands::Config => commands::config_cmd::run(),
+        #[cfg(unix)]
         Commands::Skill { action } => match action {
             SkillAction::Add { force } => commands::skill::add(force),
             SkillAction::Update => commands::skill::update(),

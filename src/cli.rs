@@ -46,6 +46,7 @@ pub enum Commands {
         csv: bool,
     },
 
+    #[cfg(unix)]
     #[command(about = "Manage AI agent skills")]
     Skill {
         #[command(subcommand)]
@@ -53,6 +54,7 @@ pub enum Commands {
     },
 }
 
+#[cfg(unix)]
 #[derive(Subcommand)]
 pub enum SkillAction {
     #[command(about = "Install the mb skill and link to detected AI agents")]
