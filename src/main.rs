@@ -22,7 +22,7 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Config => commands::config_cmd::run(),
+        Commands::Config { cookie } => commands::config_cmd::run(cookie),
         #[cfg(unix)]
         Commands::Skill { action } => match action {
             SkillAction::Add { force } => commands::skill::add(force),
@@ -42,9 +42,42 @@ fn main() -> Result<()> {
             let client = connect()?;
             commands::fields::run(&client, &database, &table)
         }
-        Commands::Query { database, sql, json, csv } => {
+        Commands::Query {
+            database,
+            sql,
+            json,
+            csv,
+        } => {
             let client = connect()?;
             commands::query::run(&client, &database, &sql, json, csv)
+        }
+        Commands::Collections { json } => {
+            let client = connect()?;
+            commands::collections::run(&client, json)
+        }
+        Commands::Questions {
+            collection,
+            search,
+            archived,
+            json,
+        } => {
+            let client = connect()?;
+            commands::questions::run(
+                &client,
+                collection.as_deref(),
+                search.as_deref(),
+                archived,
+                json,
+            )
+        }
+        Commands::Question {
+            id_or_name,
+            inspect,
+            sql,
+            json,
+        } => {
+            let client = connect()?;
+            commands::question::run(&client, &id_or_name, inspect, sql, json)
         }
     }
 }

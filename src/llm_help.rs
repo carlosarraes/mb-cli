@@ -48,6 +48,26 @@ mb query mydb "SELECT status, count(*) FROM orders GROUP BY status"
 mb query mydb "SELECT u.name, count(o.id) FROM users u JOIN orders o ON o.user_id = u.id GROUP BY u.name ORDER BY count DESC LIMIT 10"
 ```
 
+## Saved Questions (Cards)
+
+```bash
+mb collections                              # list all collections
+mb collections --json                       # raw JSON
+mb questions                                # list all saved questions
+mb questions --collection 400               # filter by collection ID
+mb questions --collection "Pagamentos"      # filter by collection name
+mb questions --search "FASE 1"              # substring search on name
+mb questions --archived                     # include archived questions
+mb question 4707                            # human-friendly summary
+mb question 4707 --inspect                  # pretty-print dataset_query JSON
+mb question 4707 --sql                      # print native SQL (if native question)
+mb question 4707 --json                     # full card JSON
+mb question "My Question Name"              # resolve by exact name (case-insensitive)
+```
+
+Use `mb question <id> --sql` to extract the SQL from a saved native question.
+Use `mb question <id> --inspect` to see the full query definition (works for both native and query-builder questions).
+
 ## Workflow: Explore Then Query
 
 ```bash

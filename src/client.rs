@@ -1,6 +1,6 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use reqwest::blocking::Client;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::config::Config;
 
@@ -79,6 +79,28 @@ pub struct QueryCol {
     pub base_type: String,
 }
 
+#[derive(Deserialize, Serialize)]
+pub struct Collection {
+    pub id: i64,
+    pub name: String,
+    #[serde(rename = "parent_id")]
+    pub parent_id: Option<i64>,
+    pub personal_owner_id: Option<serde_json::Value>,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct Card {
+    pub id: i64,
+    pub name: String,
+    pub query_type: Option<String>,
+    pub database_id: Option<i64>,
+    pub collection_id: Option<i64>,
+    pub archived: bool,
+    pub updated_at: String,
+    pub description: Option<String>,
+    pub dataset_query: serde_json::Value,
+}
+
 impl MetabaseClient {
     pub fn new(config: &Config) -> Result<Self> {
         let mb = &config.metabase;
@@ -105,7 +127,10 @@ impl MetabaseClient {
         if !resp.status().is_success() {
             let status = resp.status();
             let body = resp.text().unwrap_or_default();
-            bail!("Metabase API error ({status}): {}", &body[..body.len().min(500)]);
+            bail!(
+                "Metabase API error ({status}): {}",
+                &body[..body.len().min(500)]
+            );
         }
         Ok(resp)
     }
@@ -113,17 +138,25 @@ impl MetabaseClient {
     fn get(&self, path: &str) -> Result<reqwest::blocking::Response> {
         let url = format!("{}{}", self.base_url, path);
         let (header, value) = self.auth_header();
-        let resp = self.http.get(&url)
+        let resp = self
+            .http
+            .get(&url)
             .header(header, value)
             .send()
             .with_context(|| format!("failed to reach Metabase at {url}"))?;
         Self::check_response(resp)
     }
 
-    fn post_json(&self, path: &str, body: &serde_json::Value) -> Result<reqwest::blocking::Response> {
+    fn post_json(
+        &self,
+        path: &str,
+        body: &serde_json::Value,
+    ) -> Result<reqwest::blocking::Response> {
         let url = format!("{}{}", self.base_url, path);
         let (header, value) = self.auth_header();
-        let resp = self.http.post(&url)
+        let resp = self
+            .http
+            .post(&url)
             .header(header, value)
             .json(body)
             .send()
@@ -179,7 +212,10 @@ impl MetabaseClient {
             return Ok(id);
         }
         let databases = self.list_databases()?;
-        let items: Vec<_> = databases.iter().map(|db| (db.id, db.name.as_str())).collect();
+        let items: Vec<_> = databases
+            .iter()
+            .map(|db| (db.id, db.name.as_str()))
+            .collect();
         resolve_by_name(input, &items, "database")
     }
 
@@ -188,13 +224,55 @@ impl MetabaseClient {
             return Ok(id);
         }
         let metadata = self.database_metadata(db_id)?;
-        let items: Vec<_> = metadata.tables.iter().map(|t| (t.id, t.name.as_str())).collect();
+        let items: Vec<_> = metadata
+            .tables
+            .iter()
+            .map(|t| (t.id, t.name.as_str()))
+            .collect();
         resolve_by_name(input, &items, "table")
+    }
+
+    pub fn list_collections(&self) -> Result<Vec<Collection>> {
+        let resp = self.get("/api/collection")?;
+        resp.json().context("failed to parse collection list")
+    }
+
+    pub fn list_cards(&self) -> Result<Vec<Card>> {
+        let resp = self.get("/api/card?f=all")?;
+        resp.json().context("failed to parse card list")
+    }
+
+    pub fn get_card(&self, id: i64) -> Result<Card> {
+        let resp = self.get(&format!("/api/card/{id}"))?;
+        resp.json().context("failed to parse card")
+    }
+
+    pub fn resolve_collection(&self, input: &str) -> Result<i64> {
+        if let Ok(id) = input.parse::<i64>() {
+            return Ok(id);
+        }
+        let collections = self.list_collections()?;
+        let items: Vec<_> = collections
+            .iter()
+            .map(|c| (c.id, c.name.as_str()))
+            .collect();
+        resolve_by_name(input, &items, "collection")
+    }
+
+    pub fn resolve_question(&self, input: &str) -> Result<Card> {
+        if let Ok(id) = input.parse::<i64>() {
+            return self.get_card(id);
+        }
+        let cards = self.list_cards()?;
+        let items: Vec<_> = cards.iter().map(|c| (c.id, c.name.as_str())).collect();
+        let id = resolve_by_name(input, &items, "question")?;
+        self.get_card(id)
     }
 }
 
 fn resolve_by_name(input: &str, items: &[(i64, &str)], entity: &str) -> Result<i64> {
-    let matches: Vec<_> = items.iter()
+    let matches: Vec<_> = items
+        .iter()
         .filter(|(_, name)| name.eq_ignore_ascii_case(input))
         .collect();
     match matches.len() {
@@ -202,7 +280,11 @@ fn resolve_by_name(input: &str, items: &[(i64, &str)], entity: &str) -> Result<i
         1 => Ok(matches[0].0),
         _ => bail!(
             "multiple {entity}s match '{input}', use ID instead: {}",
-            matches.iter().map(|(id, name)| format!("{name} (id: {id})")).collect::<Vec<_>>().join(", ")
+            matches
+                .iter()
+                .map(|(id, name)| format!("{name} (id: {id})"))
+                .collect::<Vec<_>>()
+                .join(", ")
         ),
     }
 }
