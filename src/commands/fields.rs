@@ -22,7 +22,9 @@ pub fn run(client: &MetabaseClient, database: &str, table: &str) -> Result<()> {
     let db_id = client.resolve_database(database)?;
     let table_id = client.resolve_table(db_id, table)?;
     let metadata = client.table_query_metadata(table_id)?;
-    let rows: Vec<Row> = metadata.fields.into_iter()
+    let rows: Vec<Row> = metadata
+        .fields
+        .into_iter()
         .map(|f| Row {
             id: f.id,
             name: f.name,

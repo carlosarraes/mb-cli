@@ -17,7 +17,9 @@ struct Row {
 pub fn run(client: &MetabaseClient, database: &str) -> Result<()> {
     let db_id = client.resolve_database(database)?;
     let metadata = client.database_metadata(db_id)?;
-    let rows: Vec<Row> = metadata.tables.into_iter()
+    let rows: Vec<Row> = metadata
+        .tables
+        .into_iter()
         .map(|t| Row {
             id: t.id,
             schema: t.schema.unwrap_or_default(),

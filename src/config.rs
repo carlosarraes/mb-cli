@@ -26,8 +26,12 @@ pub fn config_path() -> Result<PathBuf> {
 
 pub fn load() -> Result<Config> {
     let path = config_path()?;
-    let content = fs::read_to_string(&path)
-        .with_context(|| format!("could not read config at {}\nRun `mb config` to set up", path.display()))?;
+    let content = fs::read_to_string(&path).with_context(|| {
+        format!(
+            "could not read config at {}\nRun `mb config` to set up",
+            path.display()
+        )
+    })?;
     let config: Config = toml::from_str(&content).context("invalid config file")?;
     Ok(config)
 }

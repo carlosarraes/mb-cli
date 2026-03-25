@@ -1,4 +1,4 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use reqwest::blocking::Client;
 use std::fs;
 use std::os::unix;
@@ -7,10 +7,7 @@ use std::time::Duration;
 
 const REPO_BASE_URL: &str = "https://raw.githubusercontent.com/carlosarraes/mb-cli/main/";
 
-const SKILL_FILES: &[&str] = &[
-    "skills/mb/SKILL.md",
-    "skills/mb/references/flags.md",
-];
+const SKILL_FILES: &[&str] = &["skills/mb/SKILL.md", "skills/mb/references/flags.md"];
 
 struct Agent {
     name: &'static str,
@@ -18,9 +15,18 @@ struct Agent {
 }
 
 const AGENTS: &[Agent] = &[
-    Agent { name: "Claude", dir: ".claude/skills" },
-    Agent { name: "Cursor", dir: ".cursor/skills" },
-    Agent { name: "Codex", dir: ".codex/skills" },
+    Agent {
+        name: "Claude",
+        dir: ".claude/skills",
+    },
+    Agent {
+        name: "Cursor",
+        dir: ".cursor/skills",
+    },
+    Agent {
+        name: "Codex",
+        dir: ".codex/skills",
+    },
 ];
 
 fn home_dir() -> Result<PathBuf> {
@@ -65,7 +71,9 @@ fn fetch_and_store(client: &Client) -> Result<String> {
 
     for file in SKILL_FILES {
         let url = format!("{REPO_BASE_URL}{file}");
-        let resp = client.get(&url).send()
+        let resp = client
+            .get(&url)
+            .send()
             .with_context(|| format!("failed to fetch {file}"))?;
         if !resp.status().is_success() {
             bail!("failed to fetch {file}: {}", resp.status());
@@ -86,7 +94,8 @@ fn fetch_and_store(client: &Client) -> Result<String> {
 
 fn detect_agents() -> Result<Vec<&'static Agent>> {
     let home = home_dir()?;
-    Ok(AGENTS.iter()
+    Ok(AGENTS
+        .iter()
         .filter(|a| home.join(a.dir).is_dir())
         .collect())
 }
@@ -108,7 +117,10 @@ fn create_symlinks(force: bool) -> Result<Vec<&'static str>> {
                 fs::remove_dir_all(&link_path)?;
             }
             Ok(_) => {
-                eprintln!("Warning: {} exists and is not a symlink (use --force)", link_path.display());
+                eprintln!(
+                    "Warning: {} exists and is not a symlink (use --force)",
+                    link_path.display()
+                );
                 continue;
             }
             Err(_) => {}
@@ -167,7 +179,9 @@ fn symlink_status() -> Result<Vec<(&'static str, &'static str)>> {
 
 pub fn add(force: bool) -> Result<()> {
     if installed_version()?.is_some() {
-        bail!("skill already installed. Run 'mb skill update' to update or 'mb skill remove' first");
+        bail!(
+            "skill already installed. Run 'mb skill update' to update or 'mb skill remove' first"
+        );
     }
 
     println!("Fetching mb skill from GitHub...");
@@ -177,7 +191,10 @@ pub fn add(force: bool) -> Result<()> {
 
     println!("Installed mb skill v{version}");
     if linked.is_empty() {
-        println!("No AI agents detected. Skill stored at {:?}", skill_dir()?.join("mb"));
+        println!(
+            "No AI agents detected. Skill stored at {:?}",
+            skill_dir()?.join("mb")
+        );
     } else {
         println!("Linked to: {}", linked.join(", "));
     }

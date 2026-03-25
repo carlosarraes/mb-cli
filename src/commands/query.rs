@@ -3,7 +3,13 @@ use anyhow::Result;
 use crate::client::MetabaseClient;
 use crate::output;
 
-pub fn run(client: &MetabaseClient, database: &str, sql: &str, json: bool, csv: bool) -> Result<()> {
+pub fn run(
+    client: &MetabaseClient,
+    database: &str,
+    sql: &str,
+    json: bool,
+    csv: bool,
+) -> Result<()> {
     let db_id = client.resolve_database(database)?;
 
     if csv {
