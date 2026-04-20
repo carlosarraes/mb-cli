@@ -203,7 +203,17 @@ impl MetabaseClient {
 
     pub fn export_query(&self, db_id: i64, sql: &str, format: &str) -> Result<String> {
         let body = Self::query_body(db_id, sql);
-        let resp = self.post_json(&format!("/api/dataset/{format}"), &body)?;
+        let url = format!("{}/api/dataset/{format}", self.base_url);
+        let (header, value) = self.auth_header();
+        let query_str = serde_json::to_string(&body).context("failed to serialize query")?;
+        let resp = self
+            .http
+            .post(&url)
+            .header(header, value)
+            .form(&[("query", query_str)])
+            .send()
+            .with_context(|| format!("failed to reach Metabase at {url}"))?;
+        let resp = Self::check_response(resp)?;
         resp.text().context("failed to read export response")
     }
 
