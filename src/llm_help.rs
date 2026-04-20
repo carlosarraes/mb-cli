@@ -55,8 +55,8 @@ mb collections                              # list all collections
 mb collections --json                       # raw JSON
 mb questions                                # list all saved questions
 mb questions --collection 400               # filter by collection ID
-mb questions --collection "Pagamentos"      # filter by collection name
-mb questions --search "FASE 1"              # substring search on name
+mb questions --collection "Finance"         # filter by collection name
+mb questions --search "monthly report"      # substring search on name
 mb questions --archived                     # include archived questions
 mb question 4707                            # human-friendly summary
 mb question 4707 --inspect                  # pretty-print dataset_query JSON

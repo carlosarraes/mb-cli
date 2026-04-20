@@ -5,7 +5,7 @@ use clap::{Parser, Subcommand};
     name = "mb",
     about = "Query Metabase databases from the command line",
     version,
-    after_help = "EXAMPLES\n  $ mb config\n  $ mb databases\n  $ mb tables ZapSign\n  $ mb fields ZapSign users\n  $ mb query ZapSign \"SELECT * FROM users LIMIT 10\"\n  $ mb query 2 \"SELECT count(*) FROM orders\" --csv\n  $ mb collections\n  $ mb questions --collection 400 --search \"FASE 1\"\n  $ mb question 4707 --sql\n\nLEARN MORE\n  Run 'mb --llm' for LLM-optimized query guidance and examples."
+    after_help = "EXAMPLES\n  $ mb config\n  $ mb databases\n  $ mb tables analytics\n  $ mb fields analytics users\n  $ mb query analytics \"SELECT * FROM users LIMIT 10\"\n  $ mb query 2 \"SELECT count(*) FROM orders\" --csv\n  $ mb collections\n  $ mb questions --collection 400 --search \"my report\"\n  $ mb question 4707 --sql\n\nLEARN MORE\n  Run 'mb --llm' for LLM-optimized query guidance and examples."
 )]
 pub struct Cli {
     #[command(subcommand)]
