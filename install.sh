@@ -79,7 +79,7 @@ resolve_version() {
     fi
 
     if command -v curl > /dev/null 2>&1; then
-        curl -fsSL -o /dev/null -w '%{redirect_url}' "https://github.com/${REPO}/releases/latest" |
+        curl -fsSL -o /dev/null -w '%{url_effective}' "https://github.com/${REPO}/releases/latest" |
             sed 's|.*/||'
     elif command -v wget > /dev/null 2>&1; then
         wget --spider -S "https://github.com/${REPO}/releases/latest" 2>&1 |
