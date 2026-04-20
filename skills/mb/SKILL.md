@@ -35,7 +35,7 @@ Output shows ID, Name, and Engine. Use either name or ID in subsequent commands.
 
 ```bash
 # By name (case-insensitive)
-mb tables ZapSign
+mb tables analytics
 
 # By ID
 mb tables 2
@@ -47,7 +47,7 @@ Output shows ID, Schema, and Name for every table.
 
 ```bash
 # See column names, types, and semantic info
-mb fields ZapSign users
+mb fields analytics users
 ```
 
 Output shows ID, Name, DB Type, Base Type, and Semantic Type. Use this to understand what columns are available before writing queries.
@@ -56,13 +56,13 @@ Output shows ID, Name, DB Type, Base Type, and Semantic Type. Use this to unders
 
 ```bash
 # Pretty table output (default)
-mb query ZapSign "SELECT * FROM users LIMIT 10"
+mb query analytics "SELECT * FROM users LIMIT 10"
 
 # JSON output for programmatic analysis
-mb query ZapSign "SELECT * FROM users LIMIT 10" --json
+mb query analytics "SELECT * FROM users LIMIT 10" --json
 
 # CSV for piping or export
-mb query ZapSign "SELECT * FROM users LIMIT 10" --csv
+mb query analytics "SELECT * FROM users LIMIT 10" --csv
 ```
 
 ## Saved Questions (Cards)
@@ -81,9 +81,9 @@ mb collections --json                       # raw JSON output
 ```bash
 mb questions                                # list all saved questions
 mb questions --collection 400               # filter by collection ID
-mb questions --collection "Pagamentos"      # filter by collection name
-mb questions --search "FASE 1"              # substring search on name
-mb questions --collection "Pagamentos" --search "FASE 1"  # combine filters
+mb questions --collection "Finance"         # filter by collection name
+mb questions --search "monthly report"      # substring search on name
+mb questions --collection "Finance" --search "monthly report"  # combine filters
 mb questions --archived                     # include archived questions
 mb questions --json                         # raw JSON output
 ```

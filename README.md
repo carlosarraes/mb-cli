@@ -60,11 +60,11 @@ The `skill` command manages an AI agent skill that teaches Claude, Cursor, and C
 
 ```bash
 mb databases
-mb tables ZapSign
-mb fields ZapSign users
-mb query ZapSign "SELECT * FROM users LIMIT 10"
-mb query ZapSign "SELECT * FROM users" --json
-mb query ZapSign "SELECT * FROM users" --csv
+mb tables analytics
+mb fields analytics users
+mb query analytics "SELECT * FROM users LIMIT 10"
+mb query analytics "SELECT * FROM users" --json
+mb query analytics "SELECT * FROM users" --csv
 ```
 
 ## LLM Usage
