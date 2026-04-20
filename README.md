@@ -13,7 +13,7 @@ curl -fsSL https://raw.githubusercontent.com/carlosarraes/mb-cli/main/install.sh
 To install a specific version:
 
 ```bash
-MB_VERSION=v0.1.0 curl -fsSL https://raw.githubusercontent.com/carlosarraes/mb-cli/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/carlosarraes/mb-cli/main/install.sh | MB_VERSION=v0.1.0 sh
 ```
 
 ### Download from GitHub Releases
