@@ -191,7 +191,11 @@ impl MetabaseClient {
                 "query": sql,
                 "template-tags": {}
             },
-            "parameters": []
+            "parameters": [],
+            "constraints": {
+                "max-results": 1_000_000,
+                "max-results-bare-rows": 1_000_000
+            }
         })
     }
 
@@ -199,22 +203,6 @@ impl MetabaseClient {
         let body = Self::query_body(db_id, sql);
         let resp = self.post_json("/api/dataset", &body)?;
         resp.json().context("failed to parse query result")
-    }
-
-    pub fn export_query(&self, db_id: i64, sql: &str, format: &str) -> Result<String> {
-        let body = Self::query_body(db_id, sql);
-        let url = format!("{}/api/dataset/{format}", self.base_url);
-        let (header, value) = self.auth_header();
-        let query_str = serde_json::to_string(&body).context("failed to serialize query")?;
-        let resp = self
-            .http
-            .post(&url)
-            .header(header, value)
-            .form(&[("query", query_str)])
-            .send()
-            .with_context(|| format!("failed to reach Metabase at {url}"))?;
-        let resp = Self::check_response(resp)?;
-        resp.text().context("failed to read export response")
     }
 
     pub fn resolve_database(&self, input: &str) -> Result<i64> {

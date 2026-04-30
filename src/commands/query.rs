@@ -11,20 +11,14 @@ pub fn run(
     csv: bool,
 ) -> Result<()> {
     let db_id = client.resolve_database(database)?;
+    let result = client.run_query(db_id, sql)?;
 
     if csv {
-        let raw = client.export_query(db_id, sql, "csv")?;
-        print!("{raw}");
-        return Ok(());
+        return output::print_query_csv(result);
     }
-
     if json {
-        let raw = client.export_query(db_id, sql, "json")?;
-        println!("{raw}");
-        return Ok(());
+        return output::print_query_json(result);
     }
-
-    let result = client.run_query(db_id, sql)?;
     output::print_query_table(result);
     Ok(())
 }
