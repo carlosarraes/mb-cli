@@ -16,6 +16,23 @@ To install a specific version:
 curl -fsSL https://raw.githubusercontent.com/carlosarraes/mb-cli/main/install.sh | MB_VERSION=v0.1.0 sh
 ```
 
+### Quick install (Windows)
+
+In PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/carlosarraes/mb-cli/main/install.ps1 | iex
+```
+
+To install a specific version:
+
+```powershell
+$env:MB_VERSION='v0.1.0'; irm https://raw.githubusercontent.com/carlosarraes/mb-cli/main/install.ps1 | iex
+```
+
+Installs `mb.exe` to `%LOCALAPPDATA%\Programs\mb` and adds it to your user `PATH`.
+You can run `mb` immediately in the same terminal — no restart needed.
+
 ### Download from GitHub Releases
 
 Pre-built binaries for Linux, macOS, and Windows are available on the

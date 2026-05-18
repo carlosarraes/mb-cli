@@ -87,3 +87,4 @@ jobs:
           files: |
             artifacts/*
             install.sh
+            install.ps1
